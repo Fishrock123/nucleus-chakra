@@ -1,4 +1,11 @@
-# rustyduk
+# nucleus-chakra
+
+### NOTES:
+- This is an Open Source project that will be published to nucleus-js/nucleus-chakara once it builds.
+- All info below may or may not be correct as it is for the rust-duktape version.
+- The master branch will likely be force-pushed.
+
+---
 
 This is an implementation of the [nucleus-js design spec](https://github.com/nucleus-js/design) written in [Rust](https://www.rust-lang.org) and using the [duktape](http://duktape.org/) JavaScript engine.
 
