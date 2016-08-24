@@ -1,6 +1,7 @@
 // stdlib imports
 use std::{env, fs, process};
 use std::ffi::CString;
+use std::ptr;
 
 // crate imports
 extern crate libc;
@@ -11,27 +12,62 @@ use getopts::Options;
 //
 
 // declare internal modules
-mod bundler;
-mod nucleus;
-mod duk_structs;
-mod duk_api;
-mod nucleus_functions;
+// mod bundler;
+// mod nucleus;
+// mod duk_structs;
+// mod duk_api;
+// mod nucleus_functions;
 mod resource;
 mod utils;
 //
 
 // use internals
-use nucleus::duk_put_nucleus;
-use duk_structs::duk_context;
-use duk_api as duk;
+// use nucleus::duk_put_nucleus;
+// use duk_structs::duk_context;
+// use duk_api as duk;
 //
 
+// #[repr(C)]
+enum JsRuntimeAttributes {
+    JsRuntimeAttributeNone,
+}
+
+// #[repr(C)]
+enum JsRuntime {}
+
+// #[repr(C)]
+type JsRuntimeHandle = *mut JsRuntime;
+
+// #[repr(C)]
+enum _JsSourceContext {}
+
+// #[repr(C)]
+type JsSourceContext = *mut _JsSourceContext;
+
+// #[repr(C)]
+enum JsObj {}
+
+// #[repr(C)]
+type JsRef = *mut JsObj;
+
+// #[repr(C)]
+type JsContextRef = JsRef;
+
+// #[repr(C)]
+type JsValueRef = JsRef;
+
+// #[repr(C)]
+enum JsErrorCode {}
+
+
 extern "C" {
-    fn _duk_create_heap_default() -> *mut duk_context;
-    fn _duk_peval(ctx: *mut duk_context) -> c_int;
-    fn _duk_peval_file(ctx: *mut duk_context, path: *const c_char) -> c_int;
-    fn duk_destroy_heap(ctx: *mut duk_context);
-    fn _duk_dump_context_stderr(ctx: *mut duk_context);
+    fn JsCreateRuntime(attributes: JsRuntimeAttributes, threadService: bool, runtime: *mut JsRuntimeHandle) -> JsErrorCode;
+    fn JsCreateContext(runtime: JsRuntimeHandle, newContext: *mut JsContextRef) -> JsErrorCode;
+    fn JsSetCurrentContext(context: JsContextRef) -> JsErrorCode;
+    fn JsRunScriptUtf8(script: *const c_char, sourceContext: c_int, sourceUrl: *const c_char, result: *mut JsValueRef) -> JsErrorCode;
+    fn JsConvertValueToString(value: JsValueRef, stringValue: *mut JsValueRef) -> JsErrorCode;
+    fn JsStringToPointerUtf8Copy(value: JsValueRef, stringValue: *const c_char, stringLength: usize) -> JsErrorCode;
+    fn JsDisposeRuntime(runtime: JsRuntimeHandle) -> JsErrorCode;
 }
 
 
@@ -133,33 +169,61 @@ fn main() {
         //     build_type = BuildType::ZIP;
         // }
 
-        bundler::build_zip(base_path, output, matches.opt_present("z"));
+        // bundler::build_zip(base_path, output, matches.opt_present("z"));
         return;
     }
 
-    // duktape setup
-    let ctx: *mut duk_context;
+    // Chakra setup
+    let mut runtime: JsRuntimeHandle = ptr::null_mut();
+    let mut context: JsContextRef = ptr::null_mut();
+    let mut result: JsValueRef = ptr::null_mut();
     unsafe {
-        ctx = _duk_create_heap_default();
+        // Create a runtime
+        JsCreateRuntime(JsRuntimeAttributes::JsRuntimeAttributeNone, false, &mut runtime as *mut JsRuntimeHandle);
+
+        // Create an execution context
+        JsCreateContext(runtime, &mut context as *mut JsContextRef);
+
+        // Now set the current execution context
+        JsSetCurrentContext(context);
     }
 
     // nucleus JS setup
-    duk_put_nucleus(ctx, args);
+    // duk_put_nucleus(ctx, args);
 
     // evaluating some prgram. Prepare to catch an error.
-    let err: i32;
+    let err: i32 = 0;
 
     // --no-bundle
     if matches.opt_present("N") {
         // Convert the path into a String we can pass to C
         let wanted = matches.free[0].clone().to_owned();
         let filepath = fs::canonicalize(wanted).unwrap().to_str().unwrap().to_owned();
-        let c_base_path = CString::new(filepath).unwrap();
+        // let c_base_path = CString::new(filepath).unwrap();
+
+        let script = resource::read(filepath);
+
+        let _script = "(function(){".to_string() + &script + "})()";
+
+        let cstring_script = CString::new(_script).unwrap();
 
         unsafe {
-            err = _duk_peval_file(ctx, c_base_path.as_ptr());
+            // err = _duk_peval_file(ctx, c_base_path.as_ptr());
+            // Run the script.
+            JsRunScriptUtf8(cstring_script.as_ptr(), 1, CString::new("").unwrap().as_ptr(), &mut result as *mut JsValueRef);
         }
 
+        let mut resultJSString: JsValueRef = ptr::null_mut();
+        unsafe {
+            JsConvertValueToString(result, &mut resultJSString as *mut JsValueRef);
+        }
+
+        let resultSTR: *mut c_char = ptr::null_mut();
+        unsafe {
+            JsStringToPointerUtf8Copy(resultJSString, resultSTR, 0);
+        }
+
+        println!("{}", utils::string_from_c_pointer(resultSTR));
     } else {
         // default entry file in a bundle
         let entry_file: String = "main.js".to_owned();
@@ -176,19 +240,19 @@ fn main() {
         //     } else {
 
         // check if the bundle path is a zip or not
-        resource::check_set_zip(&base_path);
+        // resource::check_set_zip(&base_path);
         //     }
         // }
 
         // wrap everything in dofile()
-        duk::push_string(ctx, "nucleus.dofile('");
-        duk::push_lstring(ctx, entry_file);
-        duk::push_string(ctx, "')");
-        duk::concat(ctx, 3);
+        // duk::push_string(ctx, "nucleus.dofile('");
+        // duk::push_lstring(ctx, entry_file);
+        // duk::push_string(ctx, "')");
+        // duk::concat(ctx, 3);
 
         // evaluate
         unsafe {
-            err = _duk_peval(ctx);
+            // err = _duk_peval(ctx);
         }
     }
 
@@ -196,16 +260,18 @@ fn main() {
     if err > 0 {
         unsafe {
             // dumps some extra stack infomation
-            _duk_dump_context_stderr(ctx);
+            // _duk_dump_context_stderr(ctx);
         }
-        duk::get_prop_string(ctx, -1, "stack");
-        let err_str = duk::safe_to_string(ctx, -1);
-        println!("Uncaught {}", err_str);
+        // duk::get_prop_string(ctx, -1, "stack");
+        // let err_str = duk::safe_to_string(ctx, -1);
+        // println!("Uncaught {}", err_str);
         process::exit(1);
     }
 
     // at this point the process is exiting normally
     unsafe {
-        duk_destroy_heap(ctx);
+        JsSetCurrentContext(ptr::null_mut() /* JS_INVALID_REFERENCE */);
+        JsDisposeRuntime(runtime);
+        // duk_destroy_heap(ctx);
     }
 }
