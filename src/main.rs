@@ -27,7 +27,7 @@ mod utils;
 // use duk_api as duk;
 //
 
-// #[repr(C)]
+#[repr(C)]
 enum JsRuntimeAttributes {
     JsRuntimeAttributeNone,
 }
@@ -155,23 +155,23 @@ fn main() {
 
     // Look for an output file.
     // This means we are producing some kind of bundle rather than running a program.
-    if matches.opt_present("o") {
-        let output = match matches.opt_str("o") {
-            Some(s) => s,
-            None => {
-                print!("Error: the option -o, --output requires an argument!");
-                process::exit(1);
-            }
-        };
-
-        // let build_type: BuildType;
-        // if matches.opt_present("z") {
-        //     build_type = BuildType::ZIP;
-        // }
-
-        // bundler::build_zip(base_path, output, matches.opt_present("z"));
-        return;
-    }
+    // if matches.opt_present("o") {
+    //     // let output = match matches.opt_str("o") {
+    //     //     Some(s) => s,
+    //     //     None => {
+    //     //         print!("Error: the option -o, --output requires an argument!");
+    //     //         process::exit(1);
+    //     //     }
+    //     // };
+    //
+    //     // let build_type: BuildType;
+    //     // if matches.opt_present("z") {
+    //     //     build_type = BuildType::ZIP;
+    //     // }
+    //
+    //     // bundler::build_zip(base_path, output, matches.opt_present("z"));
+    //     return;
+    // }
 
     // Chakra setup
     let mut runtime: JsRuntimeHandle = ptr::null_mut();
@@ -213,11 +213,13 @@ fn main() {
             JsRunScriptUtf8(cstring_script.as_ptr(), 1, CString::new("").unwrap().as_ptr(), &mut result as *mut JsValueRef);
         }
 
+        #[allow(non_snake_case)]
         let mut resultJSString: JsValueRef = ptr::null_mut();
         unsafe {
             JsConvertValueToString(result, &mut resultJSString as *mut JsValueRef);
         }
 
+        #[allow(non_snake_case)]
         let resultSTR: *mut c_char = ptr::null_mut();
         unsafe {
             JsStringToPointerUtf8Copy(resultJSString, resultSTR, 0);
@@ -226,7 +228,7 @@ fn main() {
         println!("{}", utils::string_from_c_pointer(resultSTR));
     } else {
         // default entry file in a bundle
-        let entry_file: String = "main.js".to_owned();
+        // let entry_file: String = "main.js".to_owned();
 
         // TODO(Fishrock123): support renaming of main.js
 
@@ -251,17 +253,17 @@ fn main() {
         // duk::concat(ctx, 3);
 
         // evaluate
-        unsafe {
-            // err = _duk_peval(ctx);
-        }
+        // unsafe {
+        //     // err = _duk_peval(ctx);
+        // }
     }
 
     // if we have an error, we need to print it & the stack
     if err > 0 {
-        unsafe {
-            // dumps some extra stack infomation
-            // _duk_dump_context_stderr(ctx);
-        }
+        // unsafe {
+        //     // dumps some extra stack infomation
+        //     // _duk_dump_context_stderr(ctx);
+        // }
         // duk::get_prop_string(ctx, -1, "stack");
         // let err_str = duk::safe_to_string(ctx, -1);
         // println!("Uncaught {}", err_str);

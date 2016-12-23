@@ -1,7 +1,7 @@
 // stdlib imports
-use std::env;
+// use std::env;
 use std::fs::{self, File};
-use std::io::{BufReader, ErrorKind, Read};
+use std::io::/*{BufReader, ErrorKind, */Read/*}*/;
 use std::path::Path;
 use std::mem;
 //
@@ -9,7 +9,7 @@ use std::mem;
 
 // crate imports
 extern crate libc;
-use libc::c_int;
+// use libc::c_int;
 
 extern crate zip;
 //
@@ -23,9 +23,11 @@ extern "C" {
     // static _DUK_ERR_ERROR: c_int;
 }
 
-static mut initialized: bool = false;
-static mut is_zip: bool = false;
+// static mut initialized: bool = false;
+// static mut is_zip: bool = false;
+#[allow(non_upper_case_globals)]
 static mut base_path: &'static str = "/";
+#[allow(non_upper_case_globals)]
 static mut path_set: bool = false;
 
 // init once, check if the current nucleus executabel has a zip appended
@@ -182,7 +184,7 @@ fn read_from_disk(filename: String) -> String {
     // get the real path on disk
     let real_path = match fs::canonicalize(path) {
         Ok(m) => m,
-        Err(err) => {
+        Err(/*err*/_) => {
             // match err.kind() {
             //     ErrorKind::NotFound => {
                     // null if the file wasn't found
