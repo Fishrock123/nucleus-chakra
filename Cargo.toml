@@ -1,9 +1,9 @@
 [package]
-name = "rustyduk-nucleus"
-version = "0.1.0"
+name = "nucleus-chakra"
+version = "0.0.0"
 authors = [
   "Jeremiah Senkpiel <fishrock123@rocketmail.com",
-  "Tim Caswell <tim@creationix.com>"]
+  ]
 build = "build.rs"
 
 [dependencies]

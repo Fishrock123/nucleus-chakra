@@ -1,7 +1,7 @@
 # nucleus-chakra
 
 ### NOTES:
-- This is an Open Source project that will be published to nucleus-js/nucleus-chakara once it builds.
+- This does not build correctly yet!
 - All info below may or may not be correct as it is for the rust-duktape version.
 - The master branch will likely be force-pushed.
 
@@ -95,4 +95,4 @@ exit:  function () {"native"}
 
 ## License
 
-rustyduk is licensed under [the Apache 2.0 License](LICENSE).
+nucleus-chakra is licensed under [the Apache 2.0 License](LICENSE).
